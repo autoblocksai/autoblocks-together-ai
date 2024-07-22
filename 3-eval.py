@@ -100,7 +100,7 @@ async def test_fn(test_case: TestCase) -> str:
 
 
 # Run the test suite using the Autoblocks SDK
-# npx autoblocks testing exec -- python3 3-autoblocks-eval.py
+# npx autoblocks testing exec -- python3 3-eval.py
 run_test_suite(
     id="autoblocks-together-ai",
     test_cases=test_cases,
