@@ -1,3 +1,5 @@
+# PART 3 – an evaluation script to test the accuracy of the fine-tuned model vs the base model.
+
 import os
 import json
 from typing import List
