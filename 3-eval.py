@@ -2,19 +2,14 @@
 
 import os
 import json
-from typing import List
 from together import AsyncTogether
-from textwrap import dedent
 from dataclasses import dataclass
 
-from autoblocks._impl.testing.models import EvaluationOverride
 from autoblocks.testing.run import run_test_suite
 from autoblocks.testing.models import BaseTestCase
 from autoblocks.testing.run import grid_search_ctx
 from autoblocks.testing.util import md5
-from autoblocks.testing.models import Threshold
-from autoblocks.testing.evaluators import BaseLLMJudge
-from autoblocks.testing.models import ScoreChoice
+from autoblocks.testing.evaluators import BaseAccuracy
 
 async_together_client = AsyncTogether(api_key=os.environ.get("TOGETHER_API_KEY"))
 
@@ -64,41 +59,18 @@ async def test_fn(test_case: TestCase) -> str:
     return completion.choices[0].message.content
 
 
-class Accuracy(BaseLLMJudge):
+class Accuracy(BaseAccuracy):
+    """
+    Use the Autoblocks accuracy evaluator to compare the ground truth to the model's output.
+    """
     id = "accuracy"
-    threshold = Threshold(gte=1)
     model="gpt-4o"
-    score_choices = [
-        ScoreChoice(
-            value=0,
-            name="Not accurate",
-        ),
-        ScoreChoice(
-            value=0.5,
-            name="Somewhat accurate",
-        ),
-        ScoreChoice(
-            value=1,
-            name="Accurate",
-        )
-    ]
 
-    def make_prompt(self, test_case: TestCase, output: str, recent_overrides: List[EvaluationOverride]) -> str:
-        """
-        Use an LLM as a judge to determine if the output is accurate based on the expected output.
-        Once you've manually reviewed in Autoblocks, you can use recent_overrides to provide examples to the LLM judge. 
-        """
-        return dedent(
-            f"""
-                Is the output accurate based on the expected output?
-                It should only be considered accurate if the expected output and output match.
-
-                [Output]
-                {output}
-
-                [Expected Output]
-                {test_case.expected_output}
-            """).strip()
+    def output_mapper(self, output: str) -> str:
+        return output
+    
+    def expected_output_mapper(self, test_case: TestCase) -> str:
+        return test_case.expected_output
 
 
 # Run the test suite using the Autoblocks SDK
