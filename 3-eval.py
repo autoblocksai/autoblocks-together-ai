@@ -48,6 +48,22 @@ with open(eval_dataset, "r", encoding="utf-8") as eval_file:
     ]
 
 
+async def test_fn(test_case: TestCase) -> str:
+    """
+    Using the current model from the grid search context, generate a completion for the test case.
+    """
+    ctx = grid_search_ctx()
+    model = ctx.get("model")
+    completion = await async_together_client.chat.completions.create(
+        messages=[
+            {"role": "user", "content": test_case.instruction},
+        ],
+        model=model,
+        max_tokens=1500,
+    )
+    return completion.choices[0].message.content
+
+
 class Accuracy(BaseLLMJudge):
     id = "accuracy"
     threshold = Threshold(gte=1)
@@ -83,22 +99,6 @@ class Accuracy(BaseLLMJudge):
                 [Expected Output]
                 {test_case.expected_output}
             """).strip()
-
-
-async def test_fn(test_case: TestCase) -> str:
-    """
-    Using the current model from the grid search context, generate a completion for the test case.
-    """
-    ctx = grid_search_ctx()
-    model = ctx.get("model")
-    completion = await async_together_client.chat.completions.create(
-        messages=[
-            {"role": "user", "content": test_case.instruction},
-        ],
-        model=model,
-        max_tokens=1500,
-    )
-    return completion.choices[0].message.content
 
 
 # Run the test suite using the Autoblocks SDK
