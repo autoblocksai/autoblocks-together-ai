@@ -42,7 +42,7 @@ with open(eval_dataset, "r", encoding="utf-8") as eval_file:
     eval_data = json.load(eval_file)
     test_cases = [
         TestCase(instruction=test_case["instruction"], expected_output=test_case["output"])
-        for test_case in eval_data[:30]
+        for test_case in eval_data
     ]
 
 

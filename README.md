@@ -12,6 +12,7 @@ We'll go through data cleaning, uploading your dataset, fine-tuning LLama-3-8B o
 3. Make an account with [Autoblocks AI](https://www.autoblocks.ai) and save your API key as `AUTOBLOCKS_API_KEY`.
 4. Run `1-transform.py` to do some data cleaning and get it into a format Together accepts.
 5. Run `2-finetune.py` to upload the dataset and start the fine-tuning job on Together.
+6. Set `OPENAI_API_KEY` as an environment variable for the LLM judge in the eval script.
 7. Run `npx autoblocks testing exec -- python3 3-eval.py` to evaluate the fine-tuned model using the Autoblocks CLI.
 
 ## Results
