@@ -2,6 +2,7 @@
 
 import os
 import json
+from textwrap import dedent
 from together import AsyncTogether
 from dataclasses import dataclass
 
@@ -9,13 +10,15 @@ from autoblocks.testing.run import run_test_suite
 from autoblocks.testing.models import BaseTestCase
 from autoblocks.testing.run import grid_search_ctx
 from autoblocks.testing.util import md5
-from autoblocks.testing.evaluators import BaseAccuracy
+from autoblocks.testing.models import BaseTestEvaluator
+from autoblocks.testing.models import Evaluation
+from autoblocks.testing.models import Threshold
 
 async_together_client = AsyncTogether(api_key=os.environ.get("TOGETHER_API_KEY"))
 
 base_model = "meta-llama/Llama-3-8b-chat-hf"
-top_oss_model = "meta-llama/Llama-3-70b-chat-hf"
-finetuned_model = "YOUR_FINETUNED_MODEL_ID"
+top_oss_model = "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo"
+finetuned_model = "YOUR_FINETUNED_MODEL"
 evaluator_model = "meta-llama/Llama-3-70b-chat-hf"
 eval_dataset = "EvalDataset-100.json"
 
@@ -37,10 +40,11 @@ with open(eval_dataset, "r", encoding="utf-8") as eval_file:
     Initialize the eval dataset as test cases.
     """
     eval_data = json.load(eval_file)
-    test_cases = [
-        TestCase(instruction=test_case["instruction"], expected_output=test_case["output"])
-        for test_case in eval_data
-    ]
+    unique_test_cases = {}
+    for test_case in eval_data:
+        tc = TestCase(instruction=test_case["instruction"], expected_output=test_case["output"])
+        unique_test_cases[tc.hash()] = tc
+    test_cases = list(unique_test_cases.values())
 
 
 async def test_fn(test_case: TestCase) -> str:
@@ -59,18 +63,37 @@ async def test_fn(test_case: TestCase) -> str:
     return completion.choices[0].message.content
 
 
-class Accuracy(BaseAccuracy):
+class Accuracy(BaseTestEvaluator):
     """
     Use the Autoblocks accuracy evaluator to compare the ground truth to the model's output.
     """
     id = "accuracy"
-    model="gpt-4o"
-
-    def output_mapper(self, output: str) -> str:
-        return output
+    max_concurrency = 3
     
-    def expected_output_mapper(self, test_case: TestCase) -> str:
-        return test_case.expected_output
+    async def evaluate_test_case(self, test_case: TestCase, output: str) -> Evaluation:
+        resp = await async_together_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You will be given a ground truth answer and a model answer. Please output ACCURATE if the model answer matches the ground truth answer or INACCURATE otherwise. Please only return ACCURATE or INACCURATE. It is very important for my job that you do this.",
+                },
+                {
+                    "role": "user",
+                    "content": dedent(f"""
+                        <GroundTruthAnswer>
+                        {test_case.expected_output}
+                        </GroundTruthAnswer>
+
+                        <ModelAnswer>
+                        {output}
+                        </ModelAnswer>
+                    """).strip(),
+                },
+            ],
+            model=evaluator_model,
+        )
+        score = 1 if resp.choices[0].message.content == "ACCURATE" else 0
+        return Evaluation(score=score, threshold=Threshold(gte=1))
 
 
 # Run the test suite using the Autoblocks SDK
@@ -81,7 +104,12 @@ run_test_suite(
     evaluators=[Accuracy()],
     fn=test_fn,
     grid_search_params=dict(
-        model=[base_model, top_oss_model],
+        model=[
+            base_model,
+            top_oss_model,
+            evaluator_model,
+            finetuned_model
+        ],
     ),
-    max_test_case_concurrency=5,
+    max_test_case_concurrency=4,
 )

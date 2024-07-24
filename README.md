@@ -1,8 +1,10 @@
+> Note: This was forked from https://github.com/Nutlope/finetune and modified to include the [Autoblocks AI](https://www.autoblocks.ai) SDK.
+
 # Finetuning Llama-3 on your own data
 
 This repo gives you the code to fine-tune Llama-3 on your own data. In this example, we'll be finetuning on 500 pieces of data from the [Math Instruct dataset](https://huggingface.co/datasets/TIGER-Lab/MathInstruct) from TIGER-Lab. LLMs are known for not being the best at complex multi-step math problems so we want to fine-tune an LLM on some of these problems and see how well it does.
 
-We'll go through data cleaning, uploading your dataset, fine-tuning LLama-3-8B on it, then running evals to show the accuracy vs the base model. Fine-tuning will happen on Together and costs $5 with the current pricing.
+We'll go through data cleaning, uploading your dataset, fine-tuning LLama-3-8B on it, then running evals to show the accuracy vs the base model. Fine-tuning will happen on Together and costs $5 with the current pricing. Evals will happen on Autoblocks AI.
 
 ## Fine-tuning Llama-3 on MathInstruct
 
@@ -12,8 +14,7 @@ We'll go through data cleaning, uploading your dataset, fine-tuning LLama-3-8B o
 3. Make an account with [Autoblocks AI](https://www.autoblocks.ai) and save your API key as `AUTOBLOCKS_API_KEY`.
 4. Run `1-transform.py` to do some data cleaning and get it into a format Together accepts.
 5. Run `2-finetune.py` to upload the dataset and start the fine-tuning job on Together.
-6. Set `OPENAI_API_KEY` as an environment variable for the LLM judge in the eval script.
-7. Run `npx autoblocks testing exec -- python3 3-eval.py` to evaluate the fine-tuned model using the Autoblocks CLI.
+6. Run `npx autoblocks testing exec -- python3 3-eval.py` to evaluate the fine-tuned model using the Autoblocks CLI.
 
 ## Results
 
@@ -25,5 +26,3 @@ After fine-tuning Llama-3-8B on 207k math problems from the MathInstruct dataset
 - Fine-tuned (Llama-3-8b) model: 65.2%
 - Top OSS model (Llama-3-70b): 64.2%
 - Top proprietary model (GPT-4o): 71.4%
-
-> Note: This was forked from https://github.com/Nutlope/finetune and modified to include the [Autoblocks AI](https://www.autoblocks.ai) SDK.
